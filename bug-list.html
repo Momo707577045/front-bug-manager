@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>bug信息收集系统</title>
+  <link rel="icon" href="./imgs/logo-icon.png" type="image/x-icon">
+</head>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+body {}
+header {
+  padding: 10px 20px;
+  width: 100%;
+  color: white;
+  font-size: 20px;
+  background-color: #428BCA;
+}
+.search-box {
+  position: revert;
+  margin: 20px 20px;
+  width: calc(100% - 40px);
+}
+.search-box input {
+  vertical-align: top;
+  padding: 2px 8px;
+  height: 30px;
+  width: 200px;
+  font-size: 14px;
+  line-height: 30px;
+}
+table {
+  margin: 0 20px;
+  width: calc(100% - 40px);
+  color: #707074;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+thead tr th {
+  padding: 10px;
+  font-size: 16px;
+  text-align: left;
+  border: solid 1px #DDDDDD;
+  background-color: #F2F2F2;
+}
+tbody tr td {
+  padding: 6px 12px;
+  border: solid 1px #DDDDDD;
+  word-break: break-all
+}
+tbody tr:nth-child(2n+2) {
+  background-color: white;
+}
+tbody tr:nth-child(2n+1) {
+  background-color: #F9F9F9;
+}
+tbody tr:hover {
+  background-color: #F5F5F5;
+}
+.btn {
+  display: inline-block;
+  padding: 4px 8px;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  background-color: #428BCA;
+  text-decoration: none;
+}
+.btn-delete {
+  background-color: #D15B47;
+}
+.btn-search, .btn-reset {
+  float: right;
+  width: 80px;
+  height: 30px;
+  line-height: 30px;
+}
+.btn-reset {
+  margin-left: 10px;
+  background-color: #555555;
+}
+.page-box {
+  margin: 20px;
+}
+.page-box .info {
+}
+.page-box .pagination {
+  font-size: 0;
+  float: right;
+  display: inline-block;
+  border: solid 1px #DDDDDD;
+  border-right: 0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.page-box .pagination li {
+  display: inline-block;
+  padding: 6px 10px;
+  min-width: 20px;
+  color: #497BB7;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+  border-right: solid 1px #DDDDDD;
+}
+.page-box .pagination .disabled {
+  color: #707074;
+  cursor: not-allowed;
+}
+.tips-box {
+  position: fixed;
+  padding: 0 14px;
+  top: -50px;
+  left: 50%;
+  height: 40px;
+  color: #69C6D2;
+  font-size: 20px;
+  line-height: 38px;
+  z-index: 3;
+  border-radius: 2px;
+  display: inline-block;
+  transition: 0.5s all;
+  transform: translate(-50%);
+  background-color: #275E71;
+  border: 2px solid #57C4CE;
+}
+.tips-box--show {
+  top: 10px;
+}
+</style>
+<body>
+<div id="vue-container">
+  <div class="tips-box" :class="{'tips-box--show':showTips}">{{tips}}</div>
+  <header>bug信息收集系统</header>
+  <section class="search-box">
+    <input v-model="searchUrl" class="search" type="text" placeholder="页面URL">
+    <span class="btn btn-reset" @click="reset">重置</span>
+    <span class="btn btn-search" @click="pageIndex = 1 && getList()">搜索</span>
+  </section>
+  <table>
+    <!--表头-->
+    <thead>
+    <tr>
+      <th>序号</th>
+      <th>id</th>
+      <th>页面URL</th>
+      <th v-for="confItem in dataConf">{{ confItem.name }}</th>
+      <th style="min-width: 80px;">创建时间</th>
+      <th>操作</th>
+    </tr>
+
+    </thead>
+    <!--表格内容-->
+    <tbody id="itemGroup">
+    <tr v-for="(dataItem, dataIndex) in dataList" :key="dataIndex">
+      <td>{{dataItem.index}}</td>
+      <td>{{dataItem.id}}</td>
+      <td>{{dataItem.pageURL}}</td>
+      <td v-for="(confItem, confIndex) in dataConf" :key="confIndex">{{dataItem[confItem.key]}}</td>
+      <td>{{dataItem.createTime}}</td>
+      <td>
+        <a class="btn btn-detail" :href="`./bug-detail.html?id=${dataItem.id}`">详情</a>
+        <span class="btn btn-copy" @click="copyToClipboard(dataItem.detailPath)">复制链接</span>
+        <span class="btn btn-delete" @click="deleteItem(dataItem)">删除</span>
+      </td>
+    </tr>
+    </tbody>
+
+  </table>
+  <section class="page-box">
+    <span class="info">共 {{ itemNum }} 项目，共 {{ pageNum }} 页</span>
+    <ul class="pagination">
+      <li class="btn-first" :class="{disabled:pageIndex < 2}" @click="getList(1)">首页</li>
+      <li class="btn-prev" :class="{disabled:pageIndex < 2}" @click="getList(pageIndex-1) ">上一页</li>
+      <li class="btn-current">{{pageIndex}}</li>
+      <li class="btn-next" :class="{disabled:pageIndex >= pageNum}" @click="getList(pageIndex+1)">下一页</li>
+      <li class="btn-end" :class="{disabled:pageIndex >= pageNum}" @click="getList(pageNum)">末页</li>
+    </ul>
+  </section>
+</div>
+</body>
+
+<script src="./vue.js"></script>
+<script src="./av.js"></script>
+<script>
+new Vue({
+  el: '#vue-container',
+  data: {
+    tips: '', // 操作提示
+    showTips: false, // 是否显示操作提示
+    itemNum: 0, // 数据总条数
+    pageNum: 1, // 总页数
+    pageIndex: 1, // 当前所在页
+    pageSize: 10, // 每页显示数据量
+    searchUrl: '', // 搜索的URL
+    queryObj: {}, // 数据库搜索对象
+    dataList: [], // 具体数据
+    dataConf: [ // 表格显示的数据项目
+    ],
+  },
+
+  created() {
+    var self = this
+    this.initAV();
+    this.getList();
+
+    window.addEventListener('keyup', function (event) {
+      if (event.keyCode === 13) { // 回车
+        self.getList()
+      }
+    })
+  },
+
+  watch: {
+    tips(newValue) {
+      clearTimeout(this.tipsTimeout)
+      if (newValue) {
+        this.showTips = true
+        this.tipsTimeout = setTimeout(() => {
+          this.tips = ''
+          this.showTips = false
+        }, 2000)
+      }
+    },
+  },
+
+  methods: {
+    // 初始化数据库
+    initAV() {
+      AV.init({
+        appId: '',
+        appKey: '',
+      })
+
+      this.query = new AV.Query('bug');
+    },
+
+    // 格式化时间
+    formatTime(date, formatStr) {
+      const formatType = {
+        Y: date.getFullYear(),
+        M: date.getMonth() + 1,
+        D: date.getDate(),
+        h: date.getHours(),
+        m: date.getMinutes(),
+        s: date.getSeconds(),
+      }
+      return formatStr.replace(/Y+|M+|D+|h+|m+|s+/g, target => (new Array(target.length).join('0') + formatType[target[0]]).substr(-target.length))
+    },
+
+    // 获取数据列表
+    getList(pageIndex) {
+      var self = this
+      this.dataList = []
+      this.pageIndex = pageIndex || this.pageIndex
+      if (this.pageIndex < 1) {
+        this.pageIndex = 1
+      } else if (this.pageIndex > this.pageNum) {
+        this.pageIndex = this.pageNum
+      }
+
+      this.query.count().then(function (count) {
+        self.itemNum = count
+        self.pageNum = Math.ceil(self.itemNum / self.pageSize)
+      })
+
+      this.query.limit(this.pageSize)
+        .descending('createdAt')
+        .skip(this.pageSize * (this.pageIndex - 1))
+        .contains('pageURL', this.searchUrl)
+        .contains('pageURL', this.searchUrl)
+        .find().then(function (bugList) {
+        bugList.forEach(function (bugItem, bugIndex) {
+          var dataItem = {
+            index: (self.pageIndex - 1) * 10 + bugIndex + 1,
+            id: bugItem.id,
+            createTime: self.formatTime(bugItem.createdAt, 'YYYY-MM-DD hh:mm:ss'),
+            pageURL: bugItem.attributes.pageURL,
+            detailPath: location.href.split('bug-list.html')[0] + 'bug-detail.html?id=' + bugItem.id,
+          }
+          self.dataConf.forEach(function (confItem) {
+            dataItem[confItem.key] = bugItem.attributes[confItem.key]
+          })
+          self.dataList.push(dataItem)
+        })
+      }).catch(function (error) {
+        alert(JSON.stringify(error));
+      });
+    },
+
+    // 拷贝数据
+    copyToClipboard(content) {
+      if (!document.queryCommandSupported('copy')) {
+        return false
+      }
+
+      let $input = document.createElement('input')
+      $input.style.opacity = '0'
+      $input.value = content
+      document.body.appendChild($input)
+      $input.select()
+
+      let result = document.execCommand('copy')
+      document.body.removeChild($input)
+      $input = null
+      this.tips = '拷贝成功'
+      return result
+    },
+
+    // 重置搜索条件
+    reset() {
+      this.pageIndex = 1
+      this.searchUrl = ''
+      this.getList()
+    },
+
+    // 删除项目
+    deleteItem(item) {
+      var self = this
+      AV.Object.createWithoutData('bug', item.id).destroy().then(function () {
+        self.tips = '删除成功';
+        self.getList();
+      }, function (error) {
+        alert(JSON.stringify(error))
+      });
+    },
+  }
+})
+
+</script>
+</html>

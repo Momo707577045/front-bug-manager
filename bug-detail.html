@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>bug信息收集系统</title>
+  <link rel="icon" href="./imgs/logo-icon.png" type="image/x-icon">
+</head>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+}
+body {}
+.header {
+  display: block;
+  padding: 10px 20px;
+  width: 100%;
+  color: white;
+  font-size: 20px;
+  text-decoration: none;
+  background-color: #428BCA;
+}
+.btn-action-all {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  padding: 4px 10px;
+  font-size: 20px;
+  color: white;
+  border-radius: 4px;
+  background-color: #3D8AC7;
+  border: solid 1px lightgrey;
+}
+table {
+  margin: 20px 20px;
+  width: calc(100% - 40px);
+  color: #707074;
+  font-size: 14px;
+  border-collapse: collapse;
+}
+thead tr th {
+  padding: 10px;
+  font-size: 16px;
+  text-align: left;
+  border: solid 1px #DDDDDD;
+  background-color: #F2F2F2;
+}
+tbody tr td {
+  padding: 6px 12px;
+  border: solid 1px #DDDDDD;
+  white-space: pre-wrap;
+}
+tbody tr:nth-child(2n+2) {
+  background-color: white;
+}
+tbody tr:nth-child(2n+1) {
+  background-color: #F9F9F9;
+}
+.ajax-item {
+  position: relative;
+  margin-bottom: 20px;
+  padding: 10px 10px 10px 20px;
+  min-height: 30px;
+  font-size: 0;
+  border: solid 1px grey;
+  border-radius: 4px;
+  background-color: white;
+}
+.ajax-item .icon-close {
+  position: absolute;
+  padding: 10px;
+  top: 4px;
+  left: 4px;
+  width: 10px;
+  height: 15px;
+  transform: rotate(0deg);
+  transition: 0.5s transform;
+  background-size: 10px 15px;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-image: url(./imgs/icon-arraw.png);
+}
+.ajax-item .icon-open {
+  transform: rotate(90deg);
+}
+.ajax-item .sum {
+  position: absolute;
+  top: 10px;
+  left: 30px;
+  padding: 0 10px;
+  font-size: 16px;
+  border-radius: 4px;
+  border: solid 1px grey;
+  background-color: #F5F5F5;
+}
+.ajax-item .ajax-box {
+  margin-left: 10px;
+}
+.ajax-item .request, .ajax-item .response { position: relative; }
+.ajax-item .detail {
+  position: relative;
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  border-radius: 4px;
+  word-break: break-all;
+  border: solid 1px #efefef;
+  background-color: #F5F5F5;
+}
+.ajax-item .btn-get-str {
+  margin-bottom: 10px;
+  position: absolute;
+  top: 30px;
+  right: 20px;
+  padding: 8px 16px;
+  width: 100px;
+  text-align: center;
+  font-size: 16px;
+  border-radius: 4px;
+  border: solid 1px #efefef;
+}
+.ajax-item .copy-data {
+  margin-bottom: 10px;
+  position: absolute;
+  top: 30px;
+  right: 20px;
+  width: 100px;
+  font-size: 16px;
+}
+.btn-action-all {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 4px 10px;
+  font-size: 20px;
+  color: white;
+  z-index: 2;
+  border-radius: 4px;
+  background-color: #3D8AC7;
+}
+.btn {
+  display: inline-block;
+  padding: 4px 8px;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  background-color: #428BCA;
+  text-decoration: none;
+}
+.tips-box {
+  position: fixed;
+  padding: 0 14px;
+  top: -50px;
+  left: 50%;
+  height: 40px;
+  color: #69C6D2;
+  font-size: 20px;
+  z-index: 3;
+  line-height: 38px;
+  border-radius: 2px;
+  display: inline-block;
+  transition: 0.5s all;
+  transform: translate(-50%);
+  background-color: #275E71;
+  border: 2px solid #57C4CE;
+}
+.tips-box--show {
+  top: 10px;
+}
+</style>
+<body>
+<div id="vue-container">
+  <div class="tips-box" :class="{'tips-box--show':showTips}">{{tips}}</div>
+  <a class="header" href="./bug-list.html">bug信息收集系统</a>
+  <div class="btn-action-all" @click="openAll=!openAll">{{openAll ? '折叠全部' : '展开全部'}}</div>
+  <table>
+    <!--表头-->
+    <thead>
+    <tr>
+      <th style="width: 200px">项目</th>
+      <th>内容</th>
+    </tr>
+
+    </thead>
+    <!--表格内容-->
+    <tbody id="itemGroup">
+    <tr>
+      <td>信息ID</td>
+      <td>{{detailData.id}}</td>
+    </tr>
+    <tr>
+      <td>创建时间</td>
+      <td>{{detailData.createTimeStr}}</td>
+    </tr>
+    <tr>
+      <td>页面URL</td>
+      <td>{{detailData.attributes.pageURL}}</td>
+    </tr>
+    <tr>
+      <td>浏览器信息</td>
+      <td>{{detailData.attributes.useragent}}</td>
+    </tr>
+    <tr>
+      <td>自定义数据</td>
+      <td>{{detailData.attributes.custom}}</td>
+    </tr>
+    <tr>
+      <td>接口信息</td>
+      <td>
+        <div class="ajax-item" v-for="ajaxItem in detailData.attributes.ajaxList">
+          <i class="icon icon-close" :class="{'icon-open':ajaxItem.isFold}" @click="ajaxItem.isFold = !ajaxItem.isFold"></i>
+          <div class="sum" v-if="ajaxItem.isFold">{ {{ajaxItem.request.url}} ... }</div>
+          <div class="ajax-box" v-else>
+            <div class="request">
+              <div class="detail">{{ajaxItem.requestStr}}</div>
+              <div class="btn btn-get-str" @click="copyToClipboard(ajaxItem.requestDataStr)">requestStr</div>
+            </div>
+            <div class="response">
+              <div class="detail">{{ajaxItem.responseStr}}</div>
+              <div class="btn btn-get-str" @click="copyToClipboard(ajaxItem.response.data)">copyData</div>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+</body>
+
+<script src="./vue.js"></script>
+<script src="./av.js"></script>
+<script>
+new Vue({
+  el: '#vue-container',
+
+  data: {
+    tips: '', // 操作提示
+    showTips: false, // 是否显示操作提示
+    openAll: false, // 是否打开全部
+    itemNum: 0, // 数据总条数
+    detailData: { attributes: {} }, // 详情数据
+    dataConf: [], // 表格显示的数据项目
+  },
+
+  watch: {
+    openAll(newValue) {
+      this.detailData.attributes.ajaxList.forEach((item) => {
+        item.isFold = !newValue
+      })
+    },
+    tips(newValue) {
+      clearTimeout(this.tipsTimeout)
+      if (newValue) {
+        this.showTips = true
+        this.tipsTimeout = setTimeout(() => {
+          this.tips = ''
+          this.showTips = false
+        }, 2000)
+      }
+    },
+  },
+
+  created() {
+    this.initAV();
+    this.getDetail();
+  },
+
+  methods: {
+    initAV() {
+      AV.init({
+        appId: '',
+        appKey: '',
+      })
+    },
+
+    // 格式化ajax数据
+    formatJSON: function (inputText) {
+
+      if (/^\s*$/.test(inputText)) {
+        alert('数据为空,无法格式化! ');
+        return;
+      }
+
+      let data = typeof inputText === 'string' ? JSON.parse(inputText) : inputText; // 兼容字符串及对象
+      let textLine = []; // 生成出来的字符串数组，一层用一个字符串表示
+      let lineChar = '\n'; // 换行符
+
+      // 递归函数，遍历每一层及/home/momoProject/bugSystemForTZ/admin/pages/js
+      function notify(key, value, isLast, indent, formObj) {
+        indent++; // 深度加一
+        let tab = new Array(indent + 1).join('    ').substr(0);  // 往前添加tab
+        if (value && value.constructor === Array) { // 处理数组
+          textLine.push(tab + (formObj ? ('"' + key + '":') : '') + '[' + lineChar); // 添加数组的[
+          for (let i = 0; i < value.length; i++) {
+            notify(i, value[i], i === value.length - 1, indent, false); // 递归遍历
+          }
+          textLine.push(tab + ']' + (isLast ? lineChar : (',' + lineChar))); // 添加数组的]，并判断是否是最好一个元素，不是则添加逗号
+        } else if (value && typeof value === 'object') { //处理对象
+          textLine.push(tab + (formObj ? ('"' + key + '":') : '') + '{' + lineChar);
+          let keyNum = 0, i = 0;
+          for (let key in value) { // 获取对象共有多少key值
+            keyNum++;
+          }
+          for (let key in value) { // 遍历对象值
+            notify(key, value[key], ++i === keyNum, indent, true);
+          }
+          textLine.push(tab + '}' + (isLast ? lineChar : (',' + lineChar))); // 缩进'}'换行,若非尾元素则添加逗号
+        } else {
+          if (typeof value === 'string') {
+            value = '"' + value + '"';
+          }
+          textLine.push(tab + (formObj ? ('"' + key + '":') : '') + value + (isLast ? '' : ',') + lineChar);
+        }
+      }
+
+      notify('', data, true, -1, false);
+      return textLine.join('');
+    },
+
+    // 格式化时间leancloud
+    formatTime(date, formatStr) {
+      const formatType = {
+        Y: date.getFullYear(),
+        M: date.getMonth() + 1,
+        D: date.getDate(),
+        h: date.getHours(),
+        m: date.getMinutes(),
+        s: date.getSeconds(),
+      }
+      return formatStr.replace(/Y+|M+|D+|h+|m+|s+/g, target => (new Array(target.length).join('0') + formatType[target[0]]).substr(-target.length))
+    },
+
+    // 获取数据详情
+    getDetail() {
+      var self = this
+      var query = new AV.Query('bug');
+      query.get(location.href.split('id=')[1]).then(function (detailData) {
+        detailData.createTimeStr = self.formatTime(detailData.createdAt, 'YYYY-MM-DD hh:mm:ss')
+        detailData.attributes.custom = self.formatJSON(detailData.attributes.custom)
+        detailData.attributes.ajaxList = detailData.attributes.ajax
+        detailData.attributes.ajaxList.forEach(function (ajaxItem) {
+          ajaxItem.isFold = true
+          ajaxItem.requestStr = self.formatJSON(ajaxItem.request)
+          ajaxItem.responseStr = self.formatJSON(ajaxItem.response)
+          if (ajaxItem.request.method === 'POST') {
+            ajaxItem.requestDataStr = ajaxItem.request.data
+          } else if (ajaxItem.request.method === 'GET') {
+            ajaxItem.requestDataStr = ajaxItem.request.url + '?'
+            Object.entries(ajaxItem.request.data).forEach((item) => {
+              ajaxItem.requestDataStr += item[0] + '=' + item[1] + '&'
+            })
+          }
+        })
+        self.detailData = detailData
+      }).catch(function (error) {
+        alert(JSON.stringify(error));
+      });
+    },
+
+
+    // 拷贝数据
+    copyToClipboard(content) {
+      console.log(content)
+      if (typeof content === 'object') {
+        content = JSON.stringify(content)
+      }
+      if (!document.queryCommandSupported('copy')) {
+        return false
+      }
+
+      let $input = document.createElement('input')
+      $input.style.opacity = '0'
+      $input.value = content
+      document.body.appendChild($input)
+      $input.select()
+
+      let result = document.execCommand('copy')
+      document.body.removeChild($input)
+      $input = null
+      this.tips = '拷贝成功'
+      return result
+    },
+  }
+})
+
+</script>
+</html>
