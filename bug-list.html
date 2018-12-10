@@ -16,6 +16,7 @@ header {
   width: 100%;
   color: white;
   font-size: 20px;
+  box-sizing: border-box;
   background-color: #428BCA;
 }
 .search-box {
@@ -172,11 +173,11 @@ tbody tr:hover {
   <section class="page-box">
     <span class="info">共 {{ itemNum }} 项目，共 {{ pageNum }} 页</span>
     <ul class="pagination">
-      <li class="btn-first" :class="{disabled:pageIndex < 2}" @click="getList(1)">首页</li>
-      <li class="btn-prev" :class="{disabled:pageIndex < 2}" @click="getList(pageIndex-1) ">上一页</li>
+      <li class="btn-first" :class="{disabled:pageIndex < 2}" @click="pageIndex > 1 && getList(1)">首页</li>
+      <li class="btn-prev" :class="{disabled:pageIndex < 2}" @click="pageIndex > 1 && getList(pageIndex-1) ">上一页</li>
       <li class="btn-current">{{pageIndex}}</li>
-      <li class="btn-next" :class="{disabled:pageIndex >= pageNum}" @click="getList(pageIndex+1)">下一页</li>
-      <li class="btn-end" :class="{disabled:pageIndex >= pageNum}" @click="getList(pageNum)">末页</li>
+      <li class="btn-next" :class="{disabled:pageIndex >= pageNum}" @click="pageIndex < pageNum && getList(pageIndex+1)">下一页</li>
+      <li class="btn-end" :class="{disabled:pageIndex >= pageNum}" @click="pageIndex < pageNum && getList(pageNum)">末页</li>
     </ul>
   </section>
 </div>
@@ -208,6 +209,7 @@ new Vue({
 
     window.addEventListener('keyup', function (event) {
       if (event.keyCode === 13) { // 回车
+        self.pageIndex = 1
         self.getList()
       }
     })
@@ -233,8 +235,6 @@ new Vue({
         appId: '',
         appKey: '',
       })
-
-      this.query = new AV.Query('bug');
     },
 
     // 格式化时间
@@ -260,7 +260,7 @@ new Vue({
       } else if (this.pageIndex > this.pageNum) {
         this.pageIndex = this.pageNum
       }
-
+      this.query = new AV.Query('bug');
       this.query.count().then(function (count) {
         self.itemNum = count
         self.pageNum = Math.ceil(self.itemNum / self.pageSize)
