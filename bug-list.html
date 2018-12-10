@@ -266,12 +266,18 @@ new Vue({
         self.pageNum = Math.ceil(self.itemNum / self.pageSize)
       })
 
+      this.query.count().then(function (count) {
+        self.itemNum = count
+        self.pageNum = Math.ceil(self.itemNum / self.pageSize)
+      })
       this.query.limit(this.pageSize)
         .descending('createdAt')
         .skip(this.pageSize * (this.pageIndex - 1))
-        .contains('pageURL', this.searchUrl)
-        .contains('pageURL', this.searchUrl)
-        .find().then(function (bugList) {
+      if (this.searchUrl) {
+        this.query.contains('pageURL', this.searchUrl)
+      }
+
+      this.query.find().then(function (bugList) {
         bugList.forEach(function (bugItem, bugIndex) {
           var dataItem = {
             index: (self.pageIndex - 1) * 10 + bugIndex + 1,
