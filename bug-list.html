@@ -138,7 +138,7 @@ tbody tr:hover {
   <section class="search-box">
     <input v-model="searchUrl" class="search" type="text" placeholder="页面URL">
     <span class="btn btn-reset" @click="reset">重置</span>
-    <span class="btn btn-search" @click="pageIndex = 1 && getList()">搜索</span>
+    <span class="btn btn-search" @click="search">搜索</span>
   </section>
   <table>
     <!--表头-->
@@ -248,6 +248,12 @@ new Vue({
         s: date.getSeconds(),
       }
       return formatStr.replace(/Y+|M+|D+|h+|m+|s+/g, target => (new Array(target.length).join('0') + formatType[target[0]]).substr(-target.length))
+    },
+
+    // 搜索
+    search() {
+      this.pageIndex = 1
+      this.getList()
     },
 
     // 获取数据列表
