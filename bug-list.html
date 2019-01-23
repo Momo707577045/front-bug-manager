@@ -16,7 +16,6 @@ header {
   width: 100%;
   color: white;
   font-size: 20px;
-  box-sizing: border-box;
   background-color: #428BCA;
 }
 .search-box {
@@ -203,14 +202,13 @@ new Vue({
   },
 
   created() {
-    var self = this
     this.initAV();
     this.getList();
 
-    window.addEventListener('keyup', function (event) {
+    window.addEventListener('keyup',  (event) =>{
       if (event.keyCode === 13) { // 回车
-        self.pageIndex = 1
-        self.getList()
+        this.pageIndex = 1
+        this.getList()
       }
     })
   },
@@ -250,11 +248,13 @@ new Vue({
       return formatStr.replace(/Y+|M+|D+|h+|m+|s+/g, target => (new Array(target.length).join('0') + formatType[target[0]]).substr(-target.length))
     },
 
+
     // 搜索
     search() {
       this.pageIndex = 1
       this.getList()
     },
+
 
     // 获取数据列表
     getList(pageIndex) {
@@ -272,10 +272,6 @@ new Vue({
         self.pageNum = Math.ceil(self.itemNum / self.pageSize)
       })
 
-      this.query.count().then(function (count) {
-        self.itemNum = count
-        self.pageNum = Math.ceil(self.itemNum / self.pageSize)
-      })
       this.query.limit(this.pageSize)
         .descending('createdAt')
         .skip(this.pageSize * (this.pageIndex - 1))
