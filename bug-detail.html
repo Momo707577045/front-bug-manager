@@ -149,6 +149,7 @@ tbody tr:nth-child(2n+1) {
   background-color: #428BCA;
   text-decoration: none;
 }
+.btn-edit-remark {margin-left: 10px}
 .tips-box {
   position: fixed;
   padding: 0 14px;
@@ -168,6 +169,14 @@ tbody tr:nth-child(2n+1) {
 }
 .tips-box--show {
   top: 10px;
+}
+input {
+  vertical-align: top;
+  padding: 2px 8px;
+  height: 20px;
+  width: calc(100% - 100px);
+  font-size: 14px;
+  line-height: 30px;
 }
 </style>
 <body>
@@ -189,6 +198,18 @@ tbody tr:nth-child(2n+1) {
     <tr>
       <td>信息ID</td>
       <td>{{detailData.id}}</td>
+    </tr>
+    <tr>
+      <td>bug 备注</td>
+      <td>
+        <input v-if="editRemark" v-model="detailData.remark">
+        <span v-else>{{detailData.remark}}</span>
+        <span class="btn btn-edit-remark" @click="editRemark=!editRemark">{{editRemark ? '保存' : '编辑'}}</span>
+      </td>
+    </tr>
+    <tr>
+      <td>bug 截图</td>
+      <td><img v-for="item in detailData.screenShotList" :src="item"></td>
     </tr>
     <tr>
       <td>创建时间</td>
@@ -240,6 +261,7 @@ new Vue({
     tips: '', // 操作提示
     showTips: false, // 是否显示操作提示
     openAll: false, // 是否打开全部
+    editRemark: false, // 是否编写备注
     itemNum: 0, // 数据总条数
     detailData: { attributes: {} }, // 详情数据
     dataConf: [], // 表格显示的数据项目
@@ -261,6 +283,13 @@ new Vue({
         }, 2000)
       }
     },
+    editRemark(newValue) {
+      if (!newValue) {
+        let bug = AV.Object.createWithoutData('bug', location.href.split('id=')[1]);
+        bug.set('remark', this.detailData.remark);
+        bug.save();
+      }
+    }
   },
 
   created() {
@@ -284,7 +313,16 @@ new Vue({
         return;
       }
 
-      let data = typeof inputText === 'string' ? JSON.parse(inputText) : inputText; // 兼容字符串及对象
+      let data = inputText; // 兼容字符串及对象
+      try {
+        if (typeof inputText === 'string') {
+          data = JSON.parse(inputText)
+        }
+      } catch (e) {
+        console.log('返回的数据不是个标准对象')
+        console.log(data)
+      }
+
       let textLine = []; // 生成出来的字符串数组，一层用一个字符串表示
       let lineChar = '\n'; // 换行符
 
@@ -335,16 +373,17 @@ new Vue({
 
     // 获取数据详情
     getDetail() {
-      var self = this
-      var query = new AV.Query('bug');
-      query.get(location.href.split('id=')[1]).then(function (detailData) {
-        detailData.createTimeStr = self.formatTime(detailData.createdAt, 'YYYY-MM-DD hh:mm:ss')
-        detailData.attributes.custom = self.formatJSON(detailData.attributes.custom)
+      let query = new AV.Query('bug');
+      query.get(location.href.split('id=')[1]).then((detailData) => {
+        detailData.remark = detailData.attributes.remark
+        detailData.screenShotList = detailData.attributes.screenShotList || []
+        detailData.createTimeStr = this.formatTime(detailData.createdAt, 'YYYY-MM-DD hh:mm:ss')
+        detailData.attributes.custom = this.formatJSON(detailData.attributes.custom)
         detailData.attributes.ajaxList = detailData.attributes.ajax
-        detailData.attributes.ajaxList.forEach(function (ajaxItem) {
+        detailData.attributes.ajaxList.forEach((ajaxItem) => {
           ajaxItem.isFold = true
-          ajaxItem.requestStr = self.formatJSON(ajaxItem.request)
-          ajaxItem.responseStr = self.formatJSON(ajaxItem.response)
+          ajaxItem.requestStr = this.formatJSON(ajaxItem.request)
+          ajaxItem.responseStr = this.formatJSON(ajaxItem.response)
           if (ajaxItem.request.method === 'POST') {
             ajaxItem.requestDataStr = ajaxItem.request.data
           } else if (ajaxItem.request.method === 'GET') {
@@ -354,16 +393,14 @@ new Vue({
             })
           }
         })
-        self.detailData = detailData
+        this.detailData = detailData
       }).catch(function (error) {
         alert(JSON.stringify(error));
       });
     },
 
-
     // 拷贝数据
     copyToClipboard(content) {
-      console.log(content)
       if (typeof content === 'object') {
         content = JSON.stringify(content)
       }
