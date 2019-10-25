@@ -170,7 +170,7 @@ tbody tr:nth-child(2n+1) {
 .tips-box--show {
   top: 10px;
 }
-input {
+.input {
   vertical-align: top;
   padding: 2px 8px;
   height: 20px;
@@ -178,9 +178,57 @@ input {
   font-size: 14px;
   line-height: 30px;
 }
+.btn-add-file {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  overflow: hidden;
+}
+.btn-add-file input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.image {
+  display: inline-block;
+  margin: 0 10px;
+  width: 100px;
+  height: 100px;
+  cursor: pointer;
+  border-radius: 4px;
+  border: solid 1px gainsboro;
+  background-size: cover;
+}
+.image-view {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9;
+}
+.image-view .mask {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+.image-view img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  max-height: 90%;
+  min-width: 20%;
+  min-height: 20%;
+}
 </style>
 <body>
-<div id="vue-container">
+<div v-cloak id="vue-container">
   <div class="tips-box" :class="{'tips-box--show':showTips}">{{tips}}</div>
   <a class="header" href="./bug-list.html">bug信息收集系统</a>
   <div class="btn-action-all" @click="openAll=!openAll">{{openAll ? '折叠全部' : '展开全部'}}</div>
@@ -202,14 +250,17 @@ input {
     <tr>
       <td>bug 备注</td>
       <td>
-        <input v-if="editRemark" v-model="detailData.remark">
+        <input class="input" v-if="editRemark" v-model="detailData.remark">
         <span v-else>{{detailData.remark}}</span>
         <span class="btn btn-edit-remark" @click="editRemark=!editRemark">{{editRemark ? '保存' : '编辑'}}</span>
       </td>
     </tr>
     <tr>
       <td>bug 截图</td>
-      <td><img v-for="item in detailData.screenShotList" :src="item"></td>
+      <td>
+        <div v-for="item in detailData.screenShotList" class="image" :style="{backgroundImage: `url(${item})`}" @click="imageURL=item"></div>
+        <label class="btn btn-add-file" for="input">添加<input id="input" class="" type="file" @change="addImage" value="添加" accept="image/*"></label>
+      </td>
     </tr>
     <tr>
       <td>创建时间</td>
@@ -248,6 +299,10 @@ input {
     </tr>
     </tbody>
   </table>
+  <div class="image-view"  v-if="imageURL">
+    <div class="mask" @click="imageURL=''"></div>
+    <img :src="imageURL">
+  </div>
 </div>
 </body>
 
@@ -259,6 +314,7 @@ new Vue({
 
   data: {
     tips: '', // 操作提示
+    imageURL: '', // 图片预览链接
     showTips: false, // 是否显示操作提示
     openAll: false, // 是否打开全部
     editRemark: false, // 是否编写备注
@@ -295,6 +351,11 @@ new Vue({
   created() {
     this.initAV();
     this.getDetail();
+    window.addEventListener('keyup', (event) => {
+      if (event.keyCode === 27) { // 键入ESC
+        this.imageURL = ''
+      }
+    })
   },
 
   methods: {
@@ -376,7 +437,7 @@ new Vue({
       let query = new AV.Query('bug');
       query.get(location.href.split('id=')[1]).then((detailData) => {
         detailData.remark = detailData.attributes.remark
-        detailData.screenShotList = detailData.attributes.screenShotList || []
+        detailData.screenShotList = detailData.attributes.screenShotList ? JSON.parse(detailData.attributes.screenShotList) : []
         detailData.createTimeStr = this.formatTime(detailData.createdAt, 'YYYY-MM-DD hh:mm:ss')
         detailData.attributes.custom = this.formatJSON(detailData.attributes.custom)
         detailData.attributes.ajaxList = detailData.attributes.ajax
@@ -420,6 +481,19 @@ new Vue({
       this.tips = '拷贝成功'
       return result
     },
+
+    // 添加截图
+    addImage(event) {
+      let file = event.target.files[0]
+      let avFile = new AV.File(file.name, file);
+      avFile.save().then((res) => {
+        this.detailData.screenShotList.push(res.attributes.url)
+        let bug = AV.Object.createWithoutData('bug', location.href.split('id=')[1]);
+        bug.set('screenShotList', JSON.stringify(this.detailData.screenShotList));
+        bug.save();
+      })
+
+    }
   }
 })
 
